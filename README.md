@@ -30,11 +30,13 @@ flowchart LR
 
 ```bash
 uv sync
-uv run python -m diffusion_llm.train --steps 6000 --save-every 2000   # TinyStories, 15k docs
-uv run python -m diffusion_llm.sample --ckpt checkpoints/final.pt --length 128 --steps 64
+uv run pytest                                          # ~1 s smoke tests, offline
+uv run dllm-train configs/debug.yaml                   # tiny end-to-end run on CPU
+uv run dllm-train configs/tinystories.yaml             # the README sample run
+uv run dllm-sample runs/tinystories/final.pt steps=32 guidance_scale=1.0
 ```
 
-Useful flags. Training: `--window 320` `--block-len 64` `--d-model 256` `--prefix-dropout 0.1` `--amp`. Sampling: `--guidance-scale 1.0` `--refine-rounds 2` `--confidence-threshold 0.7` `--no-cache`.
+Configs are typed dataclasses (`config.py`) with YAML presets in `configs/`. Override anything with `section.key=value`, e.g. `optim.lr=1e-3 data.block_len=32 run.out_dir=runs/exp1`. Each run writes its resolved `config.yaml` next to the checkpoints, and `dllm-sample` reuses it, so bare keys like `steps=32` override only the sampling settings. `dllm-train --help` prints every key with its default.
 
 ## Sample
 
@@ -47,7 +49,10 @@ It has picked up the TinyStories vocabulary (names, *Mommy*, *swings*, *birdhous
 ## Layout
 
 ```
+configs/           # YAML presets: debug, tinystories
+tests/             # smoke tests (config, shapes, KV cache == recompute, train → sample)
 src/diffusion_llm/
+├── config.py      # dataclass schema + YAML / CLI merging
 ├── model.py       # Transformer backbone, cosine decode
 ├── diffusion.py   # flow-matching path, loss, Heun sampler
 ├── generation.py  # block decoding, KV cache, CFG, adaptive refine
@@ -57,4 +62,4 @@ src/diffusion_llm/
 └── dataset.py     # corpora + window dataset
 ```
 
-`uv run ruff check . && uv run pyrefly check` (both clean).
+`uv run ruff check . && uv run pyrefly check && uv run pytest` (all clean).

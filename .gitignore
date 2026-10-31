@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 checkpoints/
+runs/
+.pytest_cache/
 .ruff_cache/
 .pyrefly_cache/
 .DS_Store

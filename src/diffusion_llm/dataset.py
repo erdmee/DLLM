@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import Dataset
 
-# Tiny fallback corpus (used only if no --data-path and dataset download fails).
+# Tiny offline corpus for smoke tests, and the fallback when a download fails.
 _FALLBACK = """
 Diffusion language models denoise continuous token embeddings instead of next-token prediction.
 This allows many tokens to be sampled in parallel, making decoding much faster.
@@ -26,7 +26,11 @@ def load_famous_corpus(name: str, max_docs: int) -> str:
     - tinystories: stream from roneneldan/TinyStories (capped at max_docs docs).
     - tiny-shakespeare: single raw text file from the canonical Karpathy repo.
     - wikitext-2: attempt namespaced HuggingFace variants.
+    - builtin: a three-line offline corpus for smoke tests.
     """
+    if name == "builtin":
+        return _FALLBACK
+
     if name == "tinystories":
         from datasets import load_dataset  # lazy import
 
@@ -71,7 +75,7 @@ def load_famous_corpus(name: str, max_docs: int) -> str:
     raise ValueError(f"unknown dataset name: {name}")
 
 
-def load_corpus(data_path: Path | None, dataset: str, max_docs: int) -> str:
+def load_corpus(data_path: str | Path | None, dataset: str, max_docs: int) -> str:
     """Return corpus text from a file, a named dataset, or the fallback."""
     if data_path is not None:
         file = Path(data_path)

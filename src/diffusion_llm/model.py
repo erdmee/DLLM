@@ -24,7 +24,7 @@ LOGIT_SCALE = 12.0
 
 @dataclass(frozen=True)
 class ModelConfig:
-    vocab_size: int
+    vocab_size: int = 8192  # BPE target size; the trained tokenizer's real size is used
     d_model: int = 256
     n_layers: int = 6
     n_heads: int = 8

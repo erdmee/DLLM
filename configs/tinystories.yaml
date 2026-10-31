@@ -1,0 +1,17 @@
+# The run behind the README sample (7.9M params).
+data:
+  dataset: tinystories
+  max_docs: 15000
+  window: 320
+  block_len: 64
+model:
+  vocab_size: 8192
+  d_model: 256
+  n_layers: 6
+  n_heads: 8
+optim:
+  steps: 6000
+  batch_size: 8
+  lr: 3.0e-4
+run:
+  out_dir: runs/tinystories

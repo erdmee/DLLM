@@ -1,0 +1,26 @@
+# Offline smoke run: tiny model on the builtin corpus, finishes in seconds on CPU.
+data:
+  dataset: builtin
+  window: 32
+  block_len: 8
+model:
+  vocab_size: 256
+  d_model: 64
+  n_layers: 2
+  n_heads: 4
+  max_seq_len: 128
+optim:
+  steps: 20
+  batch_size: 4
+  warmup_steps: 2
+sample:
+  block_len: 8
+  length: 24
+  steps: 4
+  num_samples: 1
+run:
+  out_dir: runs/debug
+  device: cpu
+  log_every: 10
+  sample_every: 0
+  save_every: 0

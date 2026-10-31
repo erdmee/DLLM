@@ -7,9 +7,14 @@ requires-python = ">=3.11"
 dependencies = [
     "datasets>=5.1.0",
     "numpy>=1.26",
+    "omegaconf>=2.4.0",
     "tokenizers>=0.23.3",
     "torch>=2.3",
 ]
+
+[project.scripts]
+dllm-train = "diffusion_llm.train:main"
+dllm-sample = "diffusion_llm.sample:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -21,8 +26,12 @@ packages = ["src/diffusion_llm"]
 [dependency-groups]
 dev = [
     "pyrefly>=1.0",
+    "pytest>=9.2.0",
     "ruff>=0.6",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100

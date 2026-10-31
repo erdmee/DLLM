@@ -39,7 +39,15 @@ The model has learned the vocabulary but not yet the grammar.
 ## Layout
 
 ```
-src/diffusion_llm/  config · model · diffusion · generation · train · sample · tokenizer · dataset
-configs/            debug.yaml · tinystories.yaml
-tests/              smoke tests
+├── configs/             # YAML presets: debug, tinystories
+├── tests/               # smoke tests
+└── src/diffusion_llm/
+    ├── config.py        # dataclass schema + YAML / CLI merging
+    ├── model.py         # Transformer backbone, cosine decode
+    ├── diffusion.py     # flow-matching path, loss
+    ├── generation.py    # block decoding, KV cache, CFG, refine
+    ├── train.py         # training loop, EMA, checkpoints
+    ├── sample.py        # sampling CLI
+    ├── tokenizer.py     # BPE tokenizer
+    └── dataset.py       # corpora, window dataset
 ```

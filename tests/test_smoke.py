@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -37,7 +38,7 @@ def test_forward_shape() -> None:
 @pytest.mark.parametrize("max_seq_len", [64, 24])  # 24 forces the context window to slide
 def test_cache_matches_recompute(max_seq_len: int) -> None:
     torch.manual_seed(0)
-    model = DiffusionLLM(ModelConfig(**{**TINY.__dict__, "max_seq_len": max_seq_len}))
+    model = DiffusionLLM(replace(TINY, max_seq_len=max_seq_len))
     outputs = []
     for use_cache in (True, False):
         torch.manual_seed(1)

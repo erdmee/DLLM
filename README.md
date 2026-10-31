@@ -1,65 +1,45 @@
 # DLLM
 
-A minimal **block-diffusion language model** in ~1k lines of PyTorch.
-It denoises continuous token embeddings with flow matching: tokens are generated block by block, and all tokens in a block are denoised in parallel.
+Minimal **block-diffusion LLM** in ~1k lines of PyTorch. It runs flow matching over continuous token embeddings, generating autoregressively across blocks and in parallel within each block.
 
 ```mermaid
 flowchart LR
-    P["clean prefix<br/>(t = 0, KV-cached)"] --> T
-    N["noisy block<br/>x_t, t ~ U(0,1)"] --> T
-    T["Transformer<br/>block-causal attention"] --> V["velocity v(x_t, t)"]
-    V -->|"Euler steps t: 1 → 0"| D["cosine decode<br/>vs tied embeddings"]
-    D -->|"low confidence → re-noise"| N
-    D -->|"block done"| P
+    P["clean prefix · KV cache"] --> T["Transformer"]
+    N["noisy block"] --> T
+    T -->|"velocity, Euler 1→0"| D["cosine decode"]
+    D -->|"low confidence: re-noise"| N
+    D -->|"next block"| P
 ```
 
-## Techniques
-
-| Area | What's in it |
+| | |
 | --- | --- |
-| **Objective** | Continuous embedding diffusion · rectified flow `x_t = (1-σ)(1-t)·x₀ + t·ε` · velocity MSE on block positions only |
-| **Block diffusion** | BD3-LM style: clean prefix + one noisy block per window; AR across blocks, parallel within a block (`block_len == window` → pure diffusion) |
-| **Backbone** | Pre-norm RMSNorm · RoPE · QK-norm · SwiGLU · SDPA · sinusoidal per-position timestep embedding |
-| **Decoding** | Tied embeddings + cosine-similarity logits · Euler block sampler (Heun for whole-sequence) · KV cache across blocks |
-| **Guidance** | Classifier-free guidance from prefix dropout (p = 0.1) |
-| **Adaptive refine** | Mercury-style: re-noise tokens below a confidence threshold, keep confident ones anchored |
-| **Training** | AdamW (0.9, 0.95) · warmup + cosine LR · grad clip 1.0 · EMA 0.999 (used for sampling) · optional bf16 autocast |
-| **Data** | ByteLevel BPE (8k vocab, trained on the corpus) · TinyStories / WikiText-2 / Tiny Shakespeare / any `.txt` |
+| **Diffusion** | Rectified flow `x_t = (1-σ)(1-t)·x₀ + t·ε`, velocity MSE on the noisy block only (BD3-LM style) |
+| **Backbone** | RMSNorm · RoPE · QK-norm · SwiGLU · block-causal SDPA · per-position timestep embedding |
+| **Sampling** | Cosine logits vs tied embeddings · KV cache · CFG (prefix dropout) · Mercury-style adaptive refine |
+| **Training** | AdamW · warmup + cosine LR · EMA 0.999 · bf16 · ByteLevel BPE 8k |
 
-## Quickstart
+## Usage
 
 ```bash
-uv sync
-uv run pytest                                          # ~1 s smoke tests, offline
-uv run dllm-train configs/debug.yaml                   # tiny end-to-end run on CPU
-uv run dllm-train configs/tinystories.yaml             # the README sample run
+uv sync && uv run pytest                      # offline smoke tests (~1 s)
+uv run dllm-train configs/tinystories.yaml    # or configs/debug.yaml for a CPU sanity run
 uv run dllm-sample runs/tinystories/final.pt steps=32 guidance_scale=1.0
 ```
 
-Configs are typed dataclasses (`config.py`) with YAML presets in `configs/`. Override anything with `section.key=value`, e.g. `optim.lr=1e-3 data.block_len=32 run.out_dir=runs/exp1`. Each run writes its resolved `config.yaml` next to the checkpoints, and `dllm-sample` reuses it, so bare keys like `steps=32` override only the sampling settings. `dllm-train --help` prints every key with its default.
+To override any setting, append `section.key=value` (e.g. `optim.lr=1e-3 run.out_dir=runs/exp1`). Each run saves its resolved `config.yaml`, and `dllm-train --help` lists every key.
 
 ## Sample
 
-7.9M params (d=256, 6 layers), 6k steps on 15k TinyStories docs, 64 steps/block, T = 0.9:
+7.9M params, 6k steps on TinyStories (15k docs), 64 steps/block:
 
-> okay knewMmm gone take soap Tim swings Her swings wind cry safari memb owl harm goOkay swing King makes Mia even birdhouse that eyes whiteirl understand work Lily stealing steering set flexible suggest know onto woods trees again Mommy, heardOkay …
+> okay knewMmm gone take soap Tim swings Her swings wind cry safari memb owl harm goOkay swing King makes Mia even birdhouse …
 
-It has picked up the TinyStories vocabulary (names, *Mommy*, *swings*, *birdhouse*) but no grammar yet. Coherent text needs a larger model and much more training.
+The model has learned the vocabulary but not yet the grammar.
 
 ## Layout
 
 ```
-configs/           # YAML presets: debug, tinystories
-tests/             # smoke tests (config, shapes, KV cache == recompute, train → sample)
-src/diffusion_llm/
-├── config.py      # dataclass schema + YAML / CLI merging
-├── model.py       # Transformer backbone, cosine decode
-├── diffusion.py   # flow-matching path, loss, Heun sampler
-├── generation.py  # block decoding, KV cache, CFG, adaptive refine
-├── train.py       # training loop, EMA, checkpoints
-├── sample.py      # sampling CLI
-├── tokenizer.py   # BPE tokenizer
-└── dataset.py     # corpora + window dataset
+src/diffusion_llm/  config · model · diffusion · generation · train · sample · tokenizer · dataset
+configs/            debug.yaml · tinystories.yaml
+tests/              smoke tests
 ```
-
-`uv run ruff check . && uv run pyrefly check && uv run pytest` (all clean).

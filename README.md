@@ -2,15 +2,6 @@
 
 Minimal **block-diffusion LLM** in ~1k lines of PyTorch. It runs flow matching over continuous token embeddings, generating autoregressively across blocks and in parallel within each block.
 
-```mermaid
-flowchart LR
-    P["clean prefix · KV cache"] --> T["Transformer"]
-    N["noisy block"] --> T
-    T -->|"velocity, Euler 1→0"| D["cosine decode"]
-    D -->|"low confidence: re-noise"| N
-    D -->|"next block"| P
-```
-
 | | |
 | --- | --- |
 | **Diffusion** | Rectified flow `x_t = (1-σ)(1-t)·x₀ + t·ε`, velocity MSE on the noisy block only (BD3-LM style) |
